@@ -16,6 +16,32 @@ import { useToast } from "@/hooks/use-toast";
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import type { UserProfile } from '@/types';
 
+function getFriendlyAuthErrorMessage(code?: string, defaultMessage?: string): string {
+  switch (code) {
+    case 'auth/user-not-found':
+      return "Hmm, we couldn't find an account with that email. Maybe try signing up?";
+    case 'auth/wrong-password':
+      return "That password doesn't look right. Give it another try!";
+    case 'auth/invalid-email':
+      return "The email address you entered doesn't seem valid. Please double-check it.";
+    case 'auth/email-already-in-use':
+      return "This email is already registered. Try logging in, or use a different email to sign up.";
+    case 'auth/weak-password':
+      return "For better security, please choose a stronger password (at least 6 characters).";
+    case 'auth/requires-recent-login':
+      return "For your security, please log in again before doing that.";
+    case 'auth/too-many-requests':
+        return "Looks like there have been too many attempts. Please wait a bit and try again.";
+    default:
+      if (defaultMessage && defaultMessage.startsWith("Firebase: ")) {
+        const friendlyPart = defaultMessage.substring("Firebase: ".length).split(" (auth/")[0];
+        return `Something went wrong: ${friendlyPart}. If this keeps happening, let us know!`;
+      }
+      return defaultMessage || "An unexpected hiccup occurred. Please try again.";
+  }
+}
+
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,13 +66,14 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      toast({ title: "Login Successful", description: "Welcome back!" });
+      toast({ title: "Login Successful!", description: "Welcome back!" });
       const queryParams = new URLSearchParams(window.location.search);
       const redirect = queryParams.get('redirect');
       router.push(redirect || '/');
     } catch (err: any) {
-      setError(err.message);
-      toast({ title: "Login Failed", description: err.message, variant: "destructive" });
+      const friendlyMessage = getFriendlyAuthErrorMessage(err.code, err.message);
+      setError(err.message); // Keep detailed error for on-page display if needed
+      toast({ title: "Login Problem", description: friendlyMessage, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -58,7 +85,7 @@ export default function LoginPage() {
     setIsLoading(true);
     if (password.length < 6) {
       setError("Password should be at least 6 characters.");
-      toast({ title: "Validation Error", description: "Password should be at least 6 characters.", variant: "destructive" });
+      toast({ title: "Password Check", description: "Your password needs to be at least 6 characters long for good security.", variant: "destructive" });
       setIsLoading(false);
       return;
     }
@@ -84,13 +111,14 @@ export default function LoginPage() {
       };
       await setDoc(doc(db, 'users', firebaseUser.uid), newUserProfile, { merge: true });
 
-      toast({ title: "Sign Up Successful", description: "Welcome to VoteCast!" });
+      toast({ title: "Sign Up Successful!", description: "Welcome to VoteCast! You're all set." });
       const queryParams = new URLSearchParams(window.location.search);
       const redirect = queryParams.get('redirect');
       router.push(redirect || '/');
     } catch (err: any) {
-      setError(err.message);
-      toast({ title: "Sign Up Failed", description: err.message, variant: "destructive" });
+      const friendlyMessage = getFriendlyAuthErrorMessage(err.code, err.message);
+      setError(err.message); 
+      toast({ title: "Sign Up Problem", description: friendlyMessage, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -114,7 +142,6 @@ export default function LoginPage() {
         profileDisplayName = firebaseUser.email?.split('@')[0] || "User";
       }
 
-
       const userProfileData: UserProfile = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
@@ -123,20 +150,19 @@ export default function LoginPage() {
       };
       await setDoc(userRef, userProfileData, { merge: true });
       
-      toast({ title: "Google Sign-In Successful", description: "Welcome!" });
+      toast({ title: "Google Sign-In Successful!", description: "Welcome! You're signed in with Google." });
       const queryParams = new URLSearchParams(window.location.search);
       const redirect = queryParams.get('redirect');
       router.push(redirect || '/');
     } catch (err: any) {
+      setError(err.message); 
       if (err.code === 'auth/popup-closed-by-user') {
-        setError("Google Sign-In was canceled or interrupted.");
-        toast({ title: "Google Sign-In Canceled", description: "You closed the Google sign-in window or the process was interrupted.", variant: "default" });
+        toast({ title: "Google Sign-In Incomplete", description: "The Google sign-in window was closed or didn't complete. If you'd like to try again, just click the Google button.", variant: "default" });
       } else if (err.code === 'auth/popup-blocked') {
-        setError("Google Sign-In popup was blocked by the browser.");
-        toast({ title: "Popup Blocked", description: "Google Sign-In popup was blocked. Please check your browser's pop-up blocker settings and try again.", variant: "destructive" });
+        toast({ title: "Google Popup Blocked", description: "Your browser blocked the Google sign-in pop-up. Please check your pop-up blocker settings and allow pop-ups for our site, then try signing in with Google again.", variant: "destructive" });
       } else {
-        setError(err.message);
-        toast({ title: "Google Sign-In Failed", description: err.message, variant: "destructive" });
+        const friendlyMessage = getFriendlyAuthErrorMessage(err.code, err.message);
+        toast({ title: "Google Sign-In Issue", description: friendlyMessage, variant: "destructive" });
       }
     } finally {
       setIsLoading(false);
@@ -244,3 +270,6 @@ export default function LoginPage() {
 
     
 
+
+
+    
