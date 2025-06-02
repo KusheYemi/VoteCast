@@ -1,3 +1,4 @@
+
 import PollList from "@/components/polls/poll-list";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -14,7 +15,7 @@ export default function HomePage() {
           src="/logo/votecast-logo-light-horizontal.png"
           alt="VoteCast Logo"
           width={220}
-          height={60}
+          height={59} // Corrected height for 3.75 aspect ratio (220 / 3.75 = 58.66)
           className="mb-4 drop-shadow-lg"
           priority
         />
