@@ -1,18 +1,19 @@
+
 "use client";
 
 import { useState, type FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword, signInWithPopup, createUserWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'; // Added updateProfile
 import { auth, googleProvider, db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/auth-context';
-import { Github, Mail, KeyRound, User } from 'lucide-react'; // Github as placeholder for Google
+import { Github, Mail, KeyRound, User } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore'; // Added getDoc
 import type { UserProfile } from '@/types';
 
 export default function LoginPage() {
@@ -26,8 +27,12 @@ export default function LoginPage() {
   const { toast } = useToast();
 
   useEffect(() => {
+    // This effect ensures that if a user navigates to /login while already logged in,
+    // they are redirected away. It also handles the redirect query parameter.
     if (!authLoading && user) {
-      router.push('/');
+      const queryParams = new URLSearchParams(window.location.search);
+      const redirectPath = queryParams.get('redirect');
+      router.push(redirectPath || '/');
     }
   }, [user, authLoading, router]);
 
@@ -38,7 +43,9 @@ export default function LoginPage() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       toast({ title: "Login Successful", description: "Welcome back!" });
-      router.push('/');
+      const queryParams = new URLSearchParams(window.location.search);
+      const redirect = queryParams.get('redirect');
+      router.push(redirect || '/');
     } catch (err: any) {
       setError(err.message);
       toast({ title: "Login Failed", description: err.message, variant: "destructive" });
@@ -53,24 +60,39 @@ export default function LoginPage() {
     setIsLoading(true);
     if (password.length < 6) {
       setError("Password should be at least 6 characters.");
+      toast({ title: "Validation Error", description: "Password should be at least 6 characters.", variant: "destructive" });
       setIsLoading(false);
       return;
     }
+    const trimmedDisplayName = displayName.trim();
+
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
       
+      // Update Firebase Auth user's profile if display name is provided
+      if (trimmedDisplayName) {
+        await updateProfile(firebaseUser, {
+          displayName: trimmedDisplayName,
+        });
+      }
+
       // Create user profile in Firestore
+      // Use trimmedDisplayName from form, fallback to firebaseUser.displayName (which might have been updated), then email
+      const finalDisplayNameForProfile = trimmedDisplayName || firebaseUser.displayName || firebaseUser.email;
+
       const newUserProfile: UserProfile = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
-        displayName: displayName || firebaseUser.email, // Use provided display name or email
+        displayName: finalDisplayNameForProfile, 
       };
       await setDoc(doc(db, 'users', firebaseUser.uid), newUserProfile);
 
       toast({ title: "Sign Up Successful", description: "Welcome to VoteCast!" });
-      router.push('/');
-    } catch (err: any) {
+      const queryParams = new URLSearchParams(window.location.search);
+      const redirect = queryParams.get('redirect');
+      router.push(redirect || '/');
+    } catch (err: any)
       setError(err.message);
       toast({ title: "Sign Up Failed", description: err.message, variant: "destructive" });
     } finally {
@@ -85,20 +107,22 @@ export default function LoginPage() {
       const result = await signInWithPopup(auth, googleProvider);
       const firebaseUser = result.user;
 
-      // Ensure user profile exists in Firestore
       const userRef = doc(db, 'users', firebaseUser.uid);
       const userSnap = await getDoc(userRef);
       if (!userSnap.exists()) {
         const newUserProfile: UserProfile = {
           uid: firebaseUser.uid,
           email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
+          displayName: firebaseUser.displayName, // From Google
           photoURL: firebaseUser.photoURL,
         };
         await setDoc(userRef, newUserProfile);
       }
+      
       toast({ title: "Google Sign-In Successful", description: "Welcome!" });
-      router.push('/');
+      const queryParams = new URLSearchParams(window.location.search);
+      const redirect = queryParams.get('redirect');
+      router.push(redirect || '/');
     } catch (err: any) {
       setError(err.message);
       toast({ title: "Google Sign-In Failed", description: err.message, variant: "destructive" });
@@ -107,7 +131,7 @@ export default function LoginPage() {
     }
   };
 
-  if (authLoading || user) {
+  if (authLoading || (!authLoading && user)) {
     return <div className="flex justify-center items-center min-h-[calc(100vh-200px)]"><p>Loading...</p></div>;
   }
 
@@ -204,3 +228,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    

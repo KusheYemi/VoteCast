@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { ReactNode } from 'react';
@@ -24,18 +25,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (firebaseUser) {
         const userRef = doc(db, 'users', firebaseUser.uid);
         const userSnap = await getDoc(userRef);
-        if (!userSnap.exists()) {
-          // Create user profile in Firestore if it doesn't exist
+        
+        if (userSnap.exists()) {
+          const firestoreProfile = userSnap.data() as UserProfile;
+          // Prioritize Firebase Auth's displayName if Firestore's is missing or different
+          // This ensures that if updateProfile ran, its value is preferred.
+          const displayNameFromAuth = firebaseUser.displayName;
+          let effectiveDisplayName = firestoreProfile.displayName;
+
+          if (displayNameFromAuth && displayNameFromAuth !== firestoreProfile.displayName) {
+            effectiveDisplayName = displayNameFromAuth;
+          }
+          
+          const userProfileData: UserProfile = {
+            ...firestoreProfile, // Spread existing fields first
+            uid: firebaseUser.uid, // Ensure uid is from firebaseUser
+            email: firebaseUser.email, // Ensure email is from firebaseUser
+            displayName: effectiveDisplayName, // Use the determined effectiveDisplayName
+            photoURL: firebaseUser.photoURL || firestoreProfile.photoURL, // Prefer Auth's photoURL
+          };
+
+          // If Firestore profile needs update based on Auth object (e.g., displayName changed)
+          if (userProfileData.displayName !== firestoreProfile.displayName || userProfileData.photoURL !== firestoreProfile.photoURL) {
+             await setDoc(userRef, userProfileData, { merge: true });
+          }
+          setUser(userProfileData);
+
+        } else {
+          // Firestore profile doesn't exist, create it.
+          // firebaseUser.displayName should be populated by updateProfile (for email) or from Google.
           const newUserProfile: UserProfile = {
             uid: firebaseUser.uid,
             email: firebaseUser.email,
-            displayName: firebaseUser.displayName,
+            displayName: firebaseUser.displayName, 
             photoURL: firebaseUser.photoURL,
           };
-          await setDoc(userRef, newUserProfile);
+          await setDoc(userRef, newUserProfile); 
           setUser(newUserProfile);
-        } else {
-          setUser(userSnap.data() as UserProfile);
         }
       } else {
         setUser(null);
@@ -83,3 +109,5 @@ export function useAuth() {
   }
   return context;
 }
+
+    
