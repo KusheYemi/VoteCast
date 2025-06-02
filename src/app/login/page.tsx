@@ -3,7 +3,7 @@
 
 import { useState, type FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword, signInWithPopup, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'; // Added updateProfile
+import { signInWithEmailAndPassword, signInWithPopup, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth, googleProvider, db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { Github, Mail, KeyRound, User } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { doc, setDoc, getDoc } from 'firebase/firestore'; // Added getDoc
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import type { UserProfile } from '@/types';
 
 export default function LoginPage() {
@@ -27,8 +27,6 @@ export default function LoginPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // This effect ensures that if a user navigates to /login while already logged in,
-    // they are redirected away. It also handles the redirect query parameter.
     if (!authLoading && user) {
       const queryParams = new URLSearchParams(window.location.search);
       const redirectPath = queryParams.get('redirect');
@@ -70,23 +68,26 @@ export default function LoginPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
       
-      // Update Firebase Auth user's profile if display name is provided
       if (trimmedDisplayName) {
-        await updateProfile(firebaseUser, {
+        await updateProfile(firebaseUser, { // Ensure this completes
           displayName: trimmedDisplayName,
         });
       }
 
-      // Create user profile in Firestore
-      // Use trimmedDisplayName from form, fallback to firebaseUser.displayName (which might have been updated), then email
-      const finalDisplayNameForProfile = trimmedDisplayName || firebaseUser.displayName || firebaseUser.email;
+      // Create an initial user profile in Firestore.
+      // AuthContext will handle more detailed reconciliation if needed.
+      // firebaseUser.displayName should be updated now if trimmedDisplayName was provided.
+      const initialProfileDisplayName = firebaseUser.displayName || trimmedDisplayName || firebaseUser.email;
 
       const newUserProfile: UserProfile = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
-        displayName: finalDisplayNameForProfile, 
+        displayName: initialProfileDisplayName, 
+        photoURL: firebaseUser.photoURL, // Will be null for email/pass initially
       };
-      await setDoc(doc(db, 'users', firebaseUser.uid), newUserProfile);
+      // Use merge: true in case AuthContext's onAuthStateChanged somehow runs faster
+      // and creates a document, though unlikely with awaited updateProfile.
+      await setDoc(doc(db, 'users', firebaseUser.uid), newUserProfile, { merge: true });
 
       toast({ title: "Sign Up Successful", description: "Welcome to VoteCast!" });
       const queryParams = new URLSearchParams(window.location.search);
@@ -110,10 +111,12 @@ export default function LoginPage() {
       const userRef = doc(db, 'users', firebaseUser.uid);
       const userSnap = await getDoc(userRef);
       if (!userSnap.exists()) {
+        // AuthContext will also handle profile creation/updates based on Firebase Auth state
+        // But it's good practice to create a basic profile here too.
         const newUserProfile: UserProfile = {
           uid: firebaseUser.uid,
           email: firebaseUser.email,
-          displayName: firebaseUser.displayName, // From Google
+          displayName: firebaseUser.displayName, 
           photoURL: firebaseUser.photoURL,
         };
         await setDoc(userRef, newUserProfile);

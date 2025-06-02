@@ -28,36 +28,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (userSnap.exists()) {
           const firestoreProfile = userSnap.data() as UserProfile;
-          // Prioritize Firebase Auth's displayName if Firestore's is missing or different
-          // This ensures that if updateProfile ran, its value is preferred.
-          const displayNameFromAuth = firebaseUser.displayName;
-          let effectiveDisplayName = firestoreProfile.displayName;
-
-          if (displayNameFromAuth && displayNameFromAuth !== firestoreProfile.displayName) {
-            effectiveDisplayName = displayNameFromAuth;
+          
+          // Determine the most up-to-date display name.
+          // Priority:
+          // 1. Firebase Auth's displayName (could have been updated by updateProfile or Google)
+          // 2. Firestore profile's displayName (our stored value, if Auth's is null)
+          let finalDisplayName = firebaseUser.displayName; 
+          if (!finalDisplayName && firestoreProfile.displayName) {
+            finalDisplayName = firestoreProfile.displayName;
           }
           
           const userProfileData: UserProfile = {
-            ...firestoreProfile, // Spread existing fields first
-            uid: firebaseUser.uid, // Ensure uid is from firebaseUser
-            email: firebaseUser.email, // Ensure email is from firebaseUser
-            displayName: effectiveDisplayName, // Use the determined effectiveDisplayName
+            uid: firebaseUser.uid, // Always use uid from Auth
+            email: firebaseUser.email, // Always use email from Auth
+            displayName: finalDisplayName,
             photoURL: firebaseUser.photoURL || firestoreProfile.photoURL, // Prefer Auth's photoURL
           };
 
-          // If Firestore profile needs update based on Auth object (e.g., displayName changed)
-          if (userProfileData.displayName !== firestoreProfile.displayName || userProfileData.photoURL !== firestoreProfile.photoURL) {
+          // Update Firestore if its version is different from the effectively determined one
+          // or if essential fields like email changed (though unlikely for email with same UID).
+          if (userProfileData.displayName !== firestoreProfile.displayName || 
+              userProfileData.photoURL !== firestoreProfile.photoURL ||
+              userProfileData.email !== firestoreProfile.email) {
              await setDoc(userRef, userProfileData, { merge: true });
           }
           setUser(userProfileData);
 
         } else {
           // Firestore profile doesn't exist, create it.
-          // firebaseUser.displayName should be populated by updateProfile (for email) or from Google.
+          // firebaseUser.displayName should be populated by `updateProfile` (for email/pass) or come from Google.
           const newUserProfile: UserProfile = {
             uid: firebaseUser.uid,
             email: firebaseUser.email,
-            displayName: firebaseUser.displayName, 
+            displayName: firebaseUser.displayName, // Directly from Auth object
             photoURL: firebaseUser.photoURL,
           };
           await setDoc(userRef, newUserProfile); 
