@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, type FormEvent } from 'react';
@@ -9,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { createPollAction } from '@/actions/pollActions';
 import { useToast } from "@/hooks/use-toast";
 import { XCircle, PlusCircle } from 'lucide-react';
+import { useAuth } from '@/contexts/auth-context';
 
 export default function CreatePollForm() {
   const [question, setQuestion] = useState('');
@@ -16,6 +18,7 @@ export default function CreatePollForm() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleOptionChange = (index: number, value: string) => {
     const newOptions = [...options];
@@ -24,7 +27,7 @@ export default function CreatePollForm() {
   };
 
   const addOption = () => {
-    if (options.length < 10) { // Limit options, e.g., to 10
+    if (options.length < 10) { 
       setOptions([...options, '']);
     } else {
       toast({ title: "Option Limit", description: "Maximum 10 options allowed.", variant: "default" });
@@ -32,7 +35,7 @@ export default function CreatePollForm() {
   };
 
   const removeOption = (index: number) => {
-    if (options.length > 2) { // Keep at least 2 options
+    if (options.length > 2) { 
       const newOptions = options.filter((_, i) => i !== index);
       setOptions(newOptions);
     } else {
@@ -43,6 +46,12 @@ export default function CreatePollForm() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+
+    if (!user) {
+      toast({ title: "Authentication Error", description: "You must be logged in to create a poll.", variant: "destructive" });
+      setIsLoading(false);
+      return;
+    }
 
     const validOptions = options.map(opt => opt.trim()).filter(opt => opt !== '');
     if (validOptions.length < 2) {
@@ -61,8 +70,15 @@ export default function CreatePollForm() {
       return;
     }
 
+    const userDisplayName = user.displayName || user.email || 'Anonymous';
 
-    const result = await createPollAction({ question, options: validOptions });
+    const result = await createPollAction({ 
+      question, 
+      options: validOptions, 
+      userId: user.uid, 
+      userDisplayName 
+    });
+
     if (result.success && result.pollId) {
       toast({ title: "Poll Created!", description: "Your poll is now live." });
       router.push(`/polls/${result.pollId}`);
@@ -112,7 +128,7 @@ export default function CreatePollForm() {
         </Button>
       </div>
 
-      <Button type="submit" className="w-full sm:w-auto text-base py-3 px-6 bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isLoading}>
+      <Button type="submit" className="w-full sm:w-auto text-base py-3 px-6 bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isLoading || !user}>
         {isLoading ? 'Creating Poll...' : 'Create Poll'}
       </Button>
     </form>

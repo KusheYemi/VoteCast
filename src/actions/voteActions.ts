@@ -1,35 +1,32 @@
+
 "use server";
 
-import { auth, db } from '@/lib/firebase';
+import { db } from '@/lib/firebase'; // Removed auth import
 import type { Vote } from '@/types';
-import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, getDoc, runTransaction } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 
-export async function submitVoteAction(pollId: string, selectedOptionId: string): Promise<{ success: boolean; error?: string }> {
-  const user = auth.currentUser;
-  if (!user) {
+export async function submitVoteAction(pollId: string, selectedOptionId: string, userId: string): Promise<{ success: boolean; error?: string }> {
+  if (!userId) {
     return { success: false, error: "User not authenticated." };
   }
 
   try {
-    // Check if poll exists and is active
     const pollRef = doc(db, 'polls', pollId);
     const pollSnap = await getDoc(pollRef);
     if (!pollSnap.exists() || pollSnap.data()?.status !== 'active') {
       return { success: false, error: "Poll is not active or does not exist." };
     }
     
-    // Check if user has already voted on this poll
-    const votesQuery = query(collection(db, 'votes'), where('pollId', '==', pollId), where('userId', '==', user.uid));
+    const votesQuery = query(collection(db, 'votes'), where('pollId', '==', pollId), where('userId', '==', userId));
     const existingVotesSnap = await getDocs(votesQuery);
     if (!existingVotesSnap.empty) {
       return { success: false, error: "You have already voted on this poll." };
     }
 
-    // Add the new vote
     const voteData: Omit<Vote, 'id' | 'timestamp'> & { timestamp: any } = {
       pollId,
-      userId: user.uid,
+      userId: userId,
       selectedOptionId,
       timestamp: serverTimestamp(),
     };

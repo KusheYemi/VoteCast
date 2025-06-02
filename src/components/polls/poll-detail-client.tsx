@@ -1,8 +1,9 @@
+
 "use client";
 
-import type { Poll, Vote, PollResult, UserProfile, PollOption } from '@/types';
+import type { Poll, Vote, PollResult } from '@/types';
 import { useEffect, useState } from 'react';
-import { doc, onSnapshot, collection, query, where, Timestamp } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import PollResultsChart from './poll-results-chart';
-import { submitVoteAction, closePollAction } from '@/actions/voteActions'; // closePollAction from pollActions
+import { submitVoteAction } from '@/actions/voteActions'; 
+import { closePollAction } from '@/actions/pollActions';
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Lock, AlertTriangle, UserCheck, CheckCircle, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
@@ -31,7 +33,6 @@ export default function PollDetailClient({ initialPoll }: PollDetailClientProps)
   const { toast } = useToast();
 
   useEffect(() => {
-    // Subscribe to poll updates
     const unsubPoll = onSnapshot(doc(db, 'polls', initialPoll.id), (docSnap) => {
       if (docSnap.exists()) {
         setPoll({ id: docSnap.id, ...docSnap.data() } as Poll);
@@ -43,14 +44,12 @@ export default function PollDetailClient({ initialPoll }: PollDetailClientProps)
       setError("Could not load poll details.");
     });
 
-    // Subscribe to votes for this poll
     const votesQuery = query(collection(db, 'votes'), where('pollId', '==', initialPoll.id));
     const unsubVotes = onSnapshot(votesQuery, (snapshot) => {
       const votesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Vote));
       setVotes(votesData);
     }, (err) => {
       console.error("Error fetching votes:", err);
-      // Non-critical error, results might just not update
     });
     
     return () => {
@@ -63,7 +62,7 @@ export default function PollDetailClient({ initialPoll }: PollDetailClientProps)
     if (user && votes.length > 0) {
       setHasVoted(votes.some(vote => vote.userId === user.uid));
     } else if (!user) {
-      setHasVoted(false); // Reset if user logs out
+      setHasVoted(false); 
     }
   }, [user, votes]);
 
@@ -77,7 +76,7 @@ export default function PollDetailClient({ initialPoll }: PollDetailClientProps)
       return;
     }
     setIsLoading(true);
-    const result = await submitVoteAction(poll.id, selectedOptionId);
+    const result = await submitVoteAction(poll.id, selectedOptionId, user.uid);
     if (result.success) {
       toast({ title: "Vote Submitted!", description: "Your vote has been recorded.", icon: <CheckCircle className="h-5 w-5 text-green-500" /> });
     } else {
@@ -92,8 +91,7 @@ export default function PollDetailClient({ initialPoll }: PollDetailClientProps)
       return;
     }
     setIsLoading(true);
-    // Using pollId from poll state as it's updated by snapshot
-    const result = await closePollAction(poll.id);
+    const result = await closePollAction(poll.id, user.uid);
     if (result.success) {
       toast({ title: "Poll Closed", description: "This poll is now closed for voting." });
     } else {

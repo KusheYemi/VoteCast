@@ -1,18 +1,20 @@
+
 "use server";
 
-import { auth, db } from '@/lib/firebase';
+import { db } from '@/lib/firebase'; // Removed auth import as currentUser is no longer directly used here for these actions
 import type { Poll, PollOption } from '@/types';
-import { collection, addDoc, serverTimestamp, doc, updateDoc, getDoc, query, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 
 interface CreatePollInput {
   question: string;
   options: string[]; // Array of option texts
+  userId: string;
+  userDisplayName: string;
 }
 
 export async function createPollAction(data: CreatePollInput): Promise<{ success: boolean; pollId?: string; error?: string }> {
-  const user = auth.currentUser;
-  if (!user) {
+  if (!data.userId) {
     return { success: false, error: "User not authenticated." };
   }
 
@@ -29,9 +31,8 @@ export async function createPollAction(data: CreatePollInput): Promise<{ success
      return { success: false, error: "Options must be unique." };
   }
 
-
   const pollOptions: PollOption[] = data.options.map((optionText, index) => ({
-    id: index.toString(), // Simple index-based ID for options
+    id: index.toString(),
     text: optionText.trim(),
   }));
 
@@ -39,8 +40,8 @@ export async function createPollAction(data: CreatePollInput): Promise<{ success
     const pollData: Omit<Poll, 'id' | 'createdAt'> & { createdAt: any } = {
       question: data.question.trim(),
       options: pollOptions,
-      createdBy: user.uid,
-      creatorDisplayName: user.displayName || user.email || 'Anonymous',
+      createdBy: data.userId,
+      creatorDisplayName: data.userDisplayName,
       status: 'active',
       createdAt: serverTimestamp(),
     };
@@ -48,13 +49,13 @@ export async function createPollAction(data: CreatePollInput): Promise<{ success
     revalidatePath('/');
     return { success: true, pollId: docRef.id };
   } catch (error: any) {
+    console.error("Error creating poll:", error);
     return { success: false, error: error.message || "Failed to create poll." };
   }
 }
 
-export async function closePollAction(pollId: string): Promise<{ success: boolean; error?: string }> {
-  const user = auth.currentUser;
-  if (!user) {
+export async function closePollAction(pollId: string, userId: string): Promise<{ success: boolean; error?: string }> {
+  if (!userId) {
     return { success: false, error: "User not authenticated." };
   }
 
@@ -67,7 +68,7 @@ export async function closePollAction(pollId: string): Promise<{ success: boolea
     }
 
     const pollData = pollSnap.data() as Poll;
-    if (pollData.createdBy !== user.uid) {
+    if (pollData.createdBy !== userId) {
       return { success: false, error: "You are not authorized to close this poll." };
     }
 
@@ -80,6 +81,7 @@ export async function closePollAction(pollId: string): Promise<{ success: boolea
     revalidatePath(`/polls/${pollId}`);
     return { success: true };
   } catch (error: any) {
+    console.error("Error closing poll:", error);
     return { success: false, error: error.message || "Failed to close poll." };
   }
 }
