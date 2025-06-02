@@ -68,18 +68,18 @@ export default function LoginPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
       
-      if (trimmedDisplayName) {
+      const newDisplayName = trimmedDisplayName || firebaseUser.email?.split('@')[0] || "User";
+
+      if (firebaseUser) {
         await updateProfile(firebaseUser, { 
-          displayName: trimmedDisplayName,
+          displayName: newDisplayName,
         });
       }
-
-      const initialProfileDisplayName = firebaseUser.displayName || trimmedDisplayName || firebaseUser.email;
 
       const newUserProfile: UserProfile = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
-        displayName: initialProfileDisplayName, 
+        displayName: newDisplayName, 
         photoURL: firebaseUser.photoURL, 
       };
       await setDoc(doc(db, 'users', firebaseUser.uid), newUserProfile, { merge: true });
@@ -107,11 +107,13 @@ export default function LoginPage() {
       const userSnap = await getDoc(userRef);
       
       let profileDisplayName = firebaseUser.displayName;
-      // If Google sign-in somehow didn't provide a display name,
-      // and a profile exists, prefer the existing one.
       if (!profileDisplayName && userSnap.exists()) {
         profileDisplayName = userSnap.data()?.displayName || profileDisplayName;
       }
+      if (!profileDisplayName) {
+        profileDisplayName = firebaseUser.email?.split('@')[0] || "User";
+      }
+
 
       const userProfileData: UserProfile = {
         uid: firebaseUser.uid,
@@ -119,7 +121,6 @@ export default function LoginPage() {
         displayName: profileDisplayName, 
         photoURL: firebaseUser.photoURL,
       };
-      // Create or update the profile. AuthContext will also attempt to sync.
       await setDoc(userRef, userProfileData, { merge: true });
       
       toast({ title: "Google Sign-In Successful", description: "Welcome!" });
@@ -128,8 +129,11 @@ export default function LoginPage() {
       router.push(redirect || '/');
     } catch (err: any) {
       if (err.code === 'auth/popup-closed-by-user') {
-        setError("Google Sign-In was canceled.");
-        toast({ title: "Google Sign-In Canceled", description: "You closed the Google sign-in window.", variant: "default" });
+        setError("Google Sign-In was canceled or interrupted.");
+        toast({ title: "Google Sign-In Canceled", description: "You closed the Google sign-in window or the process was interrupted.", variant: "default" });
+      } else if (err.code === 'auth/popup-blocked') {
+        setError("Google Sign-In popup was blocked by the browser.");
+        toast({ title: "Popup Blocked", description: "Google Sign-In popup was blocked. Please check your browser's pop-up blocker settings and try again.", variant: "destructive" });
       } else {
         setError(err.message);
         toast({ title: "Google Sign-In Failed", description: err.message, variant: "destructive" });
@@ -239,3 +243,4 @@ export default function LoginPage() {
     
 
     
+
