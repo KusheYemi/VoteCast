@@ -126,7 +126,7 @@ export default function PollDetailClient({ initialPoll }: PollDetailClientProps)
     <div className="space-y-8">
       <Card className="shadow-xl">
         <CardHeader>
-          <CardTitle className="text-3xl font-headline text-accent">{poll.question}</CardTitle>
+          <CardTitle className="text-2xl sm:text-3xl font-headline text-accent">{poll.question}</CardTitle>
           <CardDescription className="text-sm text-muted-foreground">
             Created by {poll.creatorDisplayName || 'Anonymous'} on {poll.createdAt ? format(new Date(poll.createdAt), 'PPP p') : 'N/A'} {/* Parse ISO string to Date */}
             <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${poll.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
