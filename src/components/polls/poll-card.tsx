@@ -14,7 +14,7 @@ export default function PollCard({ poll }: PollCardProps) {
   const timeAgo = poll.createdAt ? formatDistanceToNow(poll.createdAt.toDate(), { addSuffix: true }) : 'unknown';
 
   return (
-    <Card className="hover:shadow-xl transition-shadow duration-300 flex flex-col h-full">
+    <Card className="hover:shadow-xl transition-all duration-300 flex flex-col h-full hover:-translate-y-1">
       <CardHeader>
         <div className="flex justify-between items-start mb-2">
           <ListChecks className="h-8 w-8 text-primary" />
