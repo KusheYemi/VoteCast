@@ -3,6 +3,7 @@ import './globals.css';
 import { AuthProvider } from '@/contexts/auth-context';
 import Header from '@/components/layout/header';
 import { Toaster } from "@/components/ui/toaster";
+import DynamicYear from '@/components/layout/dynamic-year';
 
 export const metadata: Metadata = {
   title: 'VoteCast - Real-Time Polling',
@@ -15,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -28,7 +29,7 @@ export default function RootLayout({
             {children}
           </main>
           <footer className="py-4 text-center text-sm text-muted-foreground">
-            © {new Date().getFullYear()} VoteCast. All rights reserved.
+            © <DynamicYear /> VoteCast. All rights reserved.
           </footer>
         </AuthProvider>
         <Toaster />
