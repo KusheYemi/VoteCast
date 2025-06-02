@@ -69,24 +69,19 @@ export default function LoginPage() {
       const firebaseUser = userCredential.user;
       
       if (trimmedDisplayName) {
-        await updateProfile(firebaseUser, { // Ensure this completes
+        await updateProfile(firebaseUser, { 
           displayName: trimmedDisplayName,
         });
       }
 
-      // Create an initial user profile in Firestore.
-      // AuthContext will handle more detailed reconciliation if needed.
-      // firebaseUser.displayName should be updated now if trimmedDisplayName was provided.
       const initialProfileDisplayName = firebaseUser.displayName || trimmedDisplayName || firebaseUser.email;
 
       const newUserProfile: UserProfile = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
         displayName: initialProfileDisplayName, 
-        photoURL: firebaseUser.photoURL, // Will be null for email/pass initially
+        photoURL: firebaseUser.photoURL, 
       };
-      // Use merge: true in case AuthContext's onAuthStateChanged somehow runs faster
-      // and creates a document, though unlikely with awaited updateProfile.
       await setDoc(doc(db, 'users', firebaseUser.uid), newUserProfile, { merge: true });
 
       toast({ title: "Sign Up Successful", description: "Welcome to VoteCast!" });
@@ -110,25 +105,35 @@ export default function LoginPage() {
 
       const userRef = doc(db, 'users', firebaseUser.uid);
       const userSnap = await getDoc(userRef);
-      if (!userSnap.exists()) {
-        // AuthContext will also handle profile creation/updates based on Firebase Auth state
-        // But it's good practice to create a basic profile here too.
-        const newUserProfile: UserProfile = {
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName, 
-          photoURL: firebaseUser.photoURL,
-        };
-        await setDoc(userRef, newUserProfile);
+      
+      let profileDisplayName = firebaseUser.displayName;
+      // If Google sign-in somehow didn't provide a display name,
+      // and a profile exists, prefer the existing one.
+      if (!profileDisplayName && userSnap.exists()) {
+        profileDisplayName = userSnap.data()?.displayName || profileDisplayName;
       }
+
+      const userProfileData: UserProfile = {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email,
+        displayName: profileDisplayName, 
+        photoURL: firebaseUser.photoURL,
+      };
+      // Create or update the profile. AuthContext will also attempt to sync.
+      await setDoc(userRef, userProfileData, { merge: true });
       
       toast({ title: "Google Sign-In Successful", description: "Welcome!" });
       const queryParams = new URLSearchParams(window.location.search);
       const redirect = queryParams.get('redirect');
       router.push(redirect || '/');
     } catch (err: any) {
-      setError(err.message);
-      toast({ title: "Google Sign-In Failed", description: err.message, variant: "destructive" });
+      if (err.code === 'auth/popup-closed-by-user') {
+        setError("Google Sign-In was canceled.");
+        toast({ title: "Google Sign-In Canceled", description: "You closed the Google sign-in window.", variant: "default" });
+      } else {
+        setError(err.message);
+        toast({ title: "Google Sign-In Failed", description: err.message, variant: "destructive" });
+      }
     } finally {
       setIsLoading(false);
     }
