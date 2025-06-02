@@ -23,7 +23,7 @@ export default function CreatePollPage() {
     <div className="container mx-auto py-8">
       <Card className="max-w-3xl mx-auto shadow-lg">
         <CardHeader>
-          <CardTitle className="text-3xl font-headline text-center text-primary">Create a New Poll</CardTitle>
+          <CardTitle className="text-3xl font-headline text-center text-accent">Create a New Poll</CardTitle>
           <CardDescription className="text-center text-muted-foreground">
             Engage your audience by asking a question with multiple choices.
           </CardDescription>

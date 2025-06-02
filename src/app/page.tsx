@@ -7,7 +7,7 @@ export default function HomePage() {
   return (
     <div className="container mx-auto py-8">
       <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
-        <h1 className="text-4xl font-bold font-headline text-primary">
+        <h1 className="text-4xl font-bold font-headline text-accent">
           Welcome to VoteCast
         </h1>
         <Button asChild className="bg-accent hover:bg-accent/90 text-accent-foreground">

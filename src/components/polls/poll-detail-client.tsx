@@ -1,4 +1,3 @@
-
 "use client";
 
 import type { ClientPoll, Vote, PollResult, Poll as FirestorePoll } from '@/types'; // Use ClientPoll for props and state, FirestorePoll for Firestore data
@@ -126,7 +125,7 @@ export default function PollDetailClient({ initialPoll }: PollDetailClientProps)
     <div className="space-y-8">
       <Card className="shadow-xl">
         <CardHeader>
-          <CardTitle className="text-3xl font-headline text-primary">{poll.question}</CardTitle>
+          <CardTitle className="text-3xl font-headline text-accent">{poll.question}</CardTitle>
           <CardDescription className="text-sm text-muted-foreground">
             Created by {poll.creatorDisplayName || 'Anonymous'} on {poll.createdAt ? format(new Date(poll.createdAt), 'PPP p') : 'N/A'} {/* Parse ISO string to Date */}
             <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${poll.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
@@ -138,9 +137,9 @@ export default function PollDetailClient({ initialPoll }: PollDetailClientProps)
         {poll.status === 'active' && (
           <CardContent>
             {authLoading ? (
-              <div className="flex justify-center py-4"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+              <div className="flex justify-center py-4"><Loader2 className="h-8 w-8 animate-spin text-accent" /></div>
             ) : !user ? (
-              <p className="text-center text-muted-foreground py-4">Please <a href="/login" className="text-primary underline">login</a> to vote.</p>
+              <p className="text-center text-muted-foreground py-4">Please <a href="/login" className="text-accent underline">login</a> to vote.</p>
             ) : hasVoted ? (
               <div className="text-center py-4 text-green-600 flex items-center justify-center gap-2">
                 <UserCheck className="h-6 w-6" /> You've already voted on this poll.

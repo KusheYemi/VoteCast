@@ -17,13 +17,13 @@ export default function PollCard({ poll }: PollCardProps) {
     <Card className="hover:shadow-xl transition-all duration-300 flex flex-col h-full hover:-translate-y-1">
       <CardHeader>
         <div className="flex justify-between items-start mb-2">
-          <ListChecks className="h-8 w-8 text-primary" />
+          <ListChecks className="h-8 w-8 text-accent" />
           <Badge variant={poll.status === 'active' ? 'default' : 'secondary'} className={poll.status === 'active' ? 'bg-green-500 text-white' : ''}>
             {poll.status === 'active' ? 'Active' : 'Closed'}
           </Badge>
         </div>
         <CardTitle className="text-xl font-headline leading-tight">
-          <Link href={`/polls/${poll.id}`} className="hover:text-primary transition-colors">
+          <Link href={`/polls/${poll.id}`} className="hover:text-accent transition-colors">
             {poll.question}
           </Link>
         </CardTitle>
