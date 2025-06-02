@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { PollResult } from '@/types';
@@ -24,7 +25,7 @@ export default function PollResultsChart({ results, totalVotes }: PollResultsCha
   const chartConfig = {
     votes: {
       label: "Votes",
-      color: "hsl(var(--primary))",
+      color: "hsl(var(--accent))", // Changed from --primary to --accent
     },
   } satisfies ChartConfig
 
@@ -54,7 +55,7 @@ export default function PollResultsChart({ results, totalVotes }: PollResultsCha
                 />}
               />
               <Legend />
-              <Bar dataKey="votes" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="votes" fill="hsl(var(--accent))" radius={[0, 4, 4, 0]} /> {/* Changed fill from --primary to --accent */}
             </BarChart>
           </ResponsiveContainer>
         </ChartContainer>
@@ -67,7 +68,7 @@ export default function PollResultsChart({ results, totalVotes }: PollResultsCha
               </div>
               <div className="w-full bg-muted rounded-full h-2.5 mt-1">
                 <div 
-                  className="bg-primary h-2.5 rounded-full transition-all duration-500 ease-out" 
+                  className="bg-accent h-2.5 rounded-full transition-all duration-500 ease-out" // Changed bg-primary to bg-accent
                   style={{ width: `${totalVotes > 0 ? (result.votes / totalVotes) * 100 : 0}%` }}
                 ></div>
               </div>
@@ -78,3 +79,4 @@ export default function PollResultsChart({ results, totalVotes }: PollResultsCha
     </Card>
   );
 }
+
