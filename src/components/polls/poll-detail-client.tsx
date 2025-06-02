@@ -1,9 +1,9 @@
 
 "use client";
 
-import type { Poll, Vote, PollResult } from '@/types';
+import type { ClientPoll, Vote, PollResult, Poll as FirestorePoll } from '@/types'; // Use ClientPoll for props and state, FirestorePoll for Firestore data
 import { useEffect, useState } from 'react';
-import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
@@ -19,11 +19,11 @@ import { format } from 'date-fns';
 
 
 interface PollDetailClientProps {
-  initialPoll: Poll;
+  initialPoll: ClientPoll; // Expect createdAt as ISO string
 }
 
 export default function PollDetailClient({ initialPoll }: PollDetailClientProps) {
-  const [poll, setPoll] = useState<Poll>(initialPoll);
+  const [poll, setPoll] = useState<ClientPoll>(initialPoll); // State stores createdAt as ISO string
   const [votes, setVotes] = useState<Vote[]>([]);
   const [selectedOptionId, setSelectedOptionId] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
@@ -35,7 +35,16 @@ export default function PollDetailClient({ initialPoll }: PollDetailClientProps)
   useEffect(() => {
     const unsubPoll = onSnapshot(doc(db, 'polls', initialPoll.id), (docSnap) => {
       if (docSnap.exists()) {
-        setPoll({ id: docSnap.id, ...docSnap.data() } as Poll);
+        const firestoreData = docSnap.data() as Omit<FirestorePoll, 'id'>; // Data from Firestore has Timestamp
+        setPoll({
+          id: docSnap.id,
+          question: firestoreData.question,
+          options: firestoreData.options,
+          createdBy: firestoreData.createdBy,
+          creatorDisplayName: firestoreData.creatorDisplayName,
+          status: firestoreData.status,
+          createdAt: firestoreData.createdAt ? (firestoreData.createdAt as Timestamp).toDate().toISOString() : null, // Convert to ISO string for state
+        } as ClientPoll);
       } else {
         setError("Poll not found.");
       }
@@ -119,7 +128,7 @@ export default function PollDetailClient({ initialPoll }: PollDetailClientProps)
         <CardHeader>
           <CardTitle className="text-3xl font-headline text-primary">{poll.question}</CardTitle>
           <CardDescription className="text-sm text-muted-foreground">
-            Created by {poll.creatorDisplayName || 'Anonymous'} on {poll.createdAt ? format(poll.createdAt.toDate(), 'PPP p') : 'N/A'}
+            Created by {poll.creatorDisplayName || 'Anonymous'} on {poll.createdAt ? format(new Date(poll.createdAt), 'PPP p') : 'N/A'} {/* Parse ISO string to Date */}
             <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${poll.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
               {poll.status.toUpperCase()}
             </span>

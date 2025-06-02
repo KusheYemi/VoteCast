@@ -1,6 +1,7 @@
+
 import { db } from '@/lib/firebase';
-import type { Poll } from '@/types';
-import { doc, getDoc } from 'firebase/firestore';
+import type { Poll, ClientPoll } from '@/types'; // Import ClientPoll
+import { doc, getDoc, type Timestamp } from 'firebase/firestore';
 import PollDetailClient from '@/components/polls/poll-detail-client';
 import { AlertTriangle } from 'lucide-react';
 
@@ -8,12 +9,23 @@ interface PollPageProps {
   params: { id: string };
 }
 
-async function getPoll(id: string): Promise<Poll | null> {
+async function getPoll(id: string): Promise<ClientPoll | null> {
   try {
     const pollRef = doc(db, 'polls', id);
     const pollSnap = await getDoc(pollRef);
     if (pollSnap.exists()) {
-      return { id: pollSnap.id, ...pollSnap.data() } as Poll;
+      // data() returns the base Poll type with Firestore Timestamp
+      const pollData = pollSnap.data() as Omit<Poll, 'id'>;
+      return {
+        id: pollSnap.id,
+        question: pollData.question,
+        options: pollData.options,
+        createdBy: pollData.createdBy,
+        creatorDisplayName: pollData.creatorDisplayName,
+        status: pollData.status,
+        // Serialize Firestore Timestamp to ISO string for client component
+        createdAt: pollData.createdAt ? (pollData.createdAt as Timestamp).toDate().toISOString() : null,
+      };
     }
     return null;
   } catch (error) {

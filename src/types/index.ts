@@ -1,3 +1,4 @@
+
 import type { Timestamp } from 'firebase/firestore';
 
 export interface UserProfile {
@@ -20,6 +21,11 @@ export interface Poll {
   creatorDisplayName?: string; // For display purposes
   createdAt: Timestamp;
   status: 'active' | 'closed';
+}
+
+// Type for Poll data when passed to client components (createdAt is serialized)
+export interface ClientPoll extends Omit<Poll, 'createdAt'> {
+  createdAt: string | null; // ISO string representation of the timestamp
 }
 
 export interface Vote {
