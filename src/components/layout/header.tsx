@@ -7,6 +7,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { Home, PlusCircle, LogOut, LogIn, Users } from 'lucide-react';
+import Image from 'next/image';
 
 export default function Header() {
   const { user, loading } = useAuth();
@@ -24,8 +25,14 @@ export default function Header() {
   return (
     <header className="bg-primary text-primary-foreground p-4 shadow-md sticky top-0 z-50">
       <div className="container mx-auto flex flex-wrap justify-between items-center gap-4">
-        <Link href="/" className="text-2xl font-bold font-headline hover:text-accent transition-colors">
-          VoteCast
+        <Link href="/" className="hover:text-accent transition-colors">
+          <Image 
+            src="/logo/votecast-logo-light-horizontal.png" 
+            alt="VoteCast Logo" 
+            width={120} // Adjust width as needed
+            height={32} // Adjust height as needed
+            className="h-8 w-auto" // Tailwind classes for height and auto width
+          />
         </Link>
         <nav className="flex items-center gap-2 sm:gap-4">
           <Button variant="ghost" size="sm" asChild className="hover:bg-primary/80 hover:text-primary-foreground">

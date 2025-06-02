@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import type { UserProfile } from '@/types';
+import Image from 'next/image';
 
 function getFriendlyAuthErrorMessage(code?: string, defaultMessage?: string): string {
   switch (code) {
@@ -177,6 +178,15 @@ export default function LoginPage() {
     <div className="flex justify-center items-center min-h-[calc(100vh-200px)] py-12">
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center">
+          <div className="flex justify-center mb-4">
+            <Image 
+              src="/logo/votecast-logo-light-horizontal.png" 
+              alt="VoteCast Logo" 
+              width={180} 
+              height={48} 
+              priority
+            />
+          </div>
           <CardTitle className="text-3xl font-headline">Welcome to VoteCast</CardTitle>
           <CardDescription>Sign in or create an account to participate</CardDescription>
         </CardHeader>
@@ -202,7 +212,7 @@ export default function LoginPage() {
                     <Input id="password-login" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required className="pl-10" />
                   </div>
                 </div>
-                {error && <p className="text-sm text-destructive">{error}</p>}
+                {error && <p className="text-sm text-destructive">{getFriendlyAuthErrorMessage(undefined, error)}</p>}
                 <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isLoading}>
                   {isLoading ? 'Logging in...' : 'Login'}
                 </Button>
@@ -231,7 +241,7 @@ export default function LoginPage() {
                     <Input id="password-signup" type="password" placeholder="Choose a strong password" value={password} onChange={(e) => setPassword(e.target.value)} required className="pl-10"/>
                   </div>
                 </div>
-                {error && <p className="text-sm text-destructive">{error}</p>}
+                {error && <p className="text-sm text-destructive">{getFriendlyAuthErrorMessage(undefined, error)}</p>}
                 <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isLoading}>
                   {isLoading ? 'Signing up...' : 'Sign Up'}
                 </Button>
