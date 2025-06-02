@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, type FormEvent, useEffect } from "react";
@@ -27,6 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import type { UserProfile } from "@/types";
 import Image from "next/image";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function getFriendlyAuthErrorMessage(
   code?: string,
@@ -47,6 +49,10 @@ function getFriendlyAuthErrorMessage(
       return "For your security, please log in again before doing that.";
     case "auth/too-many-requests":
       return "Looks like there have been too many attempts. Please wait a bit and try again.";
+    case "auth/popup-closed-by-user":
+       return "Looks like the Google Sign-In window was closed before finishing. If you want to try again, just click the Google button!";
+    case "auth/popup-blocked":
+      return "Your browser blocked the Google Sign-In pop-up. Please check your pop-up blocker settings and allow pop-ups for our site, then try signing in with Google again.";
     default:
       if (defaultMessage && defaultMessage.startsWith("Firebase: ")) {
         const friendlyPart = defaultMessage
@@ -95,7 +101,7 @@ export default function LoginPage() {
         err.code,
         err.message
       );
-      setError(err.message); // Keep detailed error for on-page display if needed
+      setError(friendlyMessage); 
       toast({
         title: "Login Problem",
         description: friendlyMessage,
@@ -111,11 +117,11 @@ export default function LoginPage() {
     setError(null);
     setIsLoading(true);
     if (password.length < 6) {
-      setError("Password should be at least 6 characters.");
+      const friendlyMessage = "Your password needs to be at least 6 characters long for good security.";
+      setError(friendlyMessage);
       toast({
         title: "Password Check",
-        description:
-          "Your password needs to be at least 6 characters long for good security.",
+        description: friendlyMessage,
         variant: "destructive",
       });
       setIsLoading(false);
@@ -143,7 +149,7 @@ export default function LoginPage() {
       const newUserProfile: UserProfile = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
-        displayName: newDisplayName,
+        displayName: newDisplayName, // Use the determined newDisplayName
         photoURL: firebaseUser.photoURL,
       };
       await setDoc(doc(db, "users", firebaseUser.uid), newUserProfile, {
@@ -162,7 +168,7 @@ export default function LoginPage() {
         err.code,
         err.message
       );
-      setError(err.message);
+      setError(friendlyMessage);
       toast({
         title: "Sign Up Problem",
         description: friendlyMessage,
@@ -207,44 +213,74 @@ export default function LoginPage() {
       const redirect = queryParams.get("redirect");
       router.push(redirect || "/");
     } catch (err: any) {
-      setError(err.message);
-      if (err.code === "auth/popup-closed-by-user") {
-        toast({
-          title: "Google Sign-In Incomplete",
-          description:
-            "The Google sign-in window was closed or didn't complete. If you'd like to try again, just click the Google button.",
-          variant: "default",
-        });
-      } else if (err.code === "auth/popup-blocked") {
-        toast({
-          title: "Google Popup Blocked",
-          description:
-            "Your browser blocked the Google sign-in pop-up. Please check your pop-up blocker settings and allow pop-ups for our site, then try signing in with Google again.",
-          variant: "destructive",
-        });
-      } else {
-        const friendlyMessage = getFriendlyAuthErrorMessage(
-          err.code,
-          err.message
-        );
-        toast({
-          title: "Google Sign-In Issue",
-          description: friendlyMessage,
-          variant: "destructive",
-        });
-      }
+      const friendlyMessage = getFriendlyAuthErrorMessage(
+        err.code,
+        err.message
+      );
+      setError(friendlyMessage);
+      toast({
+        title: "Google Sign-In Issue",
+        description: friendlyMessage,
+        variant: err.code === "auth/popup-closed-by-user" || err.code === "auth/popup-blocked" ? "default" : "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
   if (authLoading || (!authLoading && user)) {
+    // User is logged in and will be redirected, or initial auth state is loading.
+    // The AuthProvider already shows a full-page skeleton.
+    // For this specific page, if authLoading is true and user is null, show a more specific skeleton.
+    if (authLoading && !user) {
+      return (
+        <div className="flex justify-center items-center min-h-[calc(100vh-200px)] py-12">
+          <Card className="w-full max-w-md shadow-2xl">
+            <CardHeader className="text-center space-y-4">
+              <Skeleton className="h-12 w-48 mx-auto" /> {/* Logo placeholder */}
+              <Skeleton className="h-8 w-3/4 mx-auto" /> {/* Title: "Get Started" */}
+              <Skeleton className="h-4 w-full mx-auto" /> {/* Description */}
+            </CardHeader>
+            <CardContent className="space-y-6 pt-6">
+              <Skeleton className="h-10 w-full" /> {/* TabsList placeholder */}
+              {/* Skeleton for a form section */}
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-1/4" /> {/* Label */}
+                <Skeleton className="h-10 w-full" /> {/* Input */}
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-1/4" /> {/* Label */}
+                <Skeleton className="h-10 w-full" /> {/* Input */}
+              </div>
+              <Skeleton className="h-10 w-full" /> {/* Button */}
+              
+              {/* Separator and social login skeleton */}
+              <div className="my-6 relative">
+                <div className="absolute inset-0 flex items-center">
+                  <Skeleton className="w-full h-px" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <Skeleton className="h-4 w-24 bg-card px-2" /> {/* "Or continue with" text bg*/}
+                </div>
+              </div>
+              <Skeleton className="h-10 w-full" /> {/* Social Button */}
+            </CardContent>
+            <CardFooter>
+              <Skeleton className="h-4 w-3/4 mx-auto" /> {/* Footer text */}
+            </CardFooter>
+          </Card>
+        </div>
+      );
+    }
+    // If user is already available, AuthProvider's loading state might be passed,
+    // but redirection will happen quickly. A simple text is fine for that brief moment.
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
         <p>Loading...</p>
       </div>
     );
   }
+
 
   return (
     <div className="flex justify-center items-center min-h-[calc(100vh-200px)] py-12">
@@ -322,7 +358,7 @@ export default function LoginPage() {
                 </div>
                 {error && (
                   <p className="text-sm text-destructive">
-                    {getFriendlyAuthErrorMessage(undefined, error)}
+                    {error}
                   </p>
                 )}
                 <Button
@@ -402,7 +438,7 @@ export default function LoginPage() {
                 </div>
                 {error && (
                   <p className="text-sm text-destructive">
-                    {getFriendlyAuthErrorMessage(undefined, error)}
+                    {error}
                   </p>
                 )}
                 <Button

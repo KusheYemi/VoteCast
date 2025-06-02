@@ -1,9 +1,11 @@
+
 "use client";
 import CreatePollForm from '@/components/polls/create-poll-form';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import FormCardSkeleton from '@/components/layout/form-card-skeleton';
 
 export default function CreatePollPage() {
   const { user, loading } = useAuth();
@@ -16,7 +18,11 @@ export default function CreatePollPage() {
   }, [user, loading, router]);
 
   if (loading || !user) {
-    return <div className="text-center py-10">Loading or redirecting...</div>;
+    return (
+      <div className="container mx-auto py-8">
+        <FormCardSkeleton />
+      </div>
+    );
   }
 
   return (
