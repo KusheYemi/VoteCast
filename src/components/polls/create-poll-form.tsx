@@ -128,9 +128,24 @@ export default function CreatePollForm() {
         </Button>
       </div>
 
-      <Button type="submit" className="w-full sm:w-auto text-base py-3 px-6 bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isLoading || !user}>
-        {isLoading ? 'Creating Poll...' : 'Create Poll'}
-      </Button>
+      <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={() => router.push('/')} 
+          className="w-full sm:w-auto text-base py-3 px-6"
+          disabled={isLoading}
+        >
+          Cancel
+        </Button>
+        <Button 
+          type="submit" 
+          className="w-full sm:w-auto text-base py-3 px-6 bg-accent hover:bg-accent/90 text-accent-foreground" 
+          disabled={isLoading || !user}
+        >
+          {isLoading ? 'Creating Poll...' : 'Create Poll'}
+        </Button>
+      </div>
     </form>
   );
 }
