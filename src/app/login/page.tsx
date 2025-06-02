@@ -92,7 +92,7 @@ export default function LoginPage() {
       const queryParams = new URLSearchParams(window.location.search);
       const redirect = queryParams.get('redirect');
       router.push(redirect || '/');
-    } catch (err: any)
+    } catch (err: any) {
       setError(err.message);
       toast({ title: "Sign Up Failed", description: err.message, variant: "destructive" });
     } finally {
@@ -228,5 +228,6 @@ export default function LoginPage() {
     </div>
   );
 }
+    
 
     
