@@ -1,7 +1,7 @@
 
-import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
+import { getAuth, GoogleAuthProvider, connectAuthEmulator, type Auth } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator, type Firestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -11,6 +11,11 @@ const firebaseConfig = {
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
+
+let app: FirebaseApp | undefined;
+let auth: Auth | undefined;
+let db: Firestore | undefined;
+const googleProvider = new GoogleAuthProvider(); // Can be initialized regardless
 
 // Critical check for the API Key before attempting to initialize Firebase
 if (!firebaseConfig.apiKey) {
@@ -24,40 +29,26 @@ if (!firebaseConfig.apiKey) {
     'The application cannot initialize Firebase and will not function correctly without this key.';
 
   if (process.env.NODE_ENV === 'development') {
-    // Log an error in development if the API key is missing, instead of throwing.
-    // Firebase will still fail to initialize correctly later.
+    // Log an error in development if the API key is missing.
+    // The app will likely still fail later, but this makes the root cause clearer.
     console.error(errorMessage);
   } else if (process.env.NODE_ENV === 'production') {
-    // In production, log a critical error. The app will likely fail,
-    // but we avoid immediately crashing the server here.
+    // In production, log a critical error. The app will likely fail.
     console.error(errorMessage);
   }
-}
-
-let app: FirebaseApp;
-if (!getApps().length) {
-  // Only initialize if the API key is present.
-  // If it was missing, initializeApp will likely throw its own error here,
-  // but we've already logged our more specific message.
-  if (firebaseConfig.apiKey) {
+  // app, auth, and db will remain undefined
+} else {
+  if (!getApps().length) {
     app = initializeApp(firebaseConfig);
   } else {
-    // This case means API key is missing. App remains uninitialized.
-    // Downstream Firebase calls will fail.
-    console.error("Firebase app could not be initialized due to missing API key (this log is a fallback). App will be undefined.");
-    // Explicitly setting app to a type that reflects it might be uninitialized,
-    // though practically, subsequent getAuth/getFirestore calls will fail.
-    app = undefined as any; // Or handle more gracefully if your app structure allows
+    app = getApps()[0];
   }
-} else {
-  app = getApps()[0];
-}
 
-// It's possible 'app' is undefined here if the API key was missing.
-// Subsequent calls to getAuth/getFirestore will fail if 'app' is not a valid FirebaseApp instance.
-const auth = app ? getAuth(app) : undefined as any;
-const db = app ? getFirestore(app) : undefined as any;
-const googleProvider = new GoogleAuthProvider();
+  if (app) {
+    auth = getAuth(app);
+    db = getFirestore(app);
+  }
+}
 
 
 // Comment out these lines for production
@@ -74,4 +65,3 @@ const googleProvider = new GoogleAuthProvider();
 
 
 export { app, auth, db, googleProvider };
-
