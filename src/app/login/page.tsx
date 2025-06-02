@@ -8,6 +8,7 @@ import {
   signInWithPopup,
   createUserWithEmailAndPassword,
   updateProfile,
+  sendPasswordResetEmail, // Import sendPasswordResetEmail
 } from "firebase/auth";
 import { auth, googleProvider, db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
@@ -149,7 +150,7 @@ export default function LoginPage() {
       const newUserProfile: UserProfile = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
-        displayName: newDisplayName, // Use the determined newDisplayName
+        displayName: newDisplayName, 
         photoURL: firebaseUser.photoURL,
       };
       await setDoc(doc(db, "users", firebaseUser.uid), newUserProfile, {
@@ -228,52 +229,76 @@ export default function LoginPage() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      toast({
+        title: "Email Required",
+        description: "Please enter your email address above to reset your password.",
+        variant: "default", // Changed to default as it's instructional
+      });
+      return;
+    }
+    setError(null);
+    setIsLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      toast({
+        title: "Password Reset Email Sent",
+        description: `If an account exists for ${email}, you'll receive an email with instructions to reset your password shortly.`,
+      });
+    } catch (err: any) {
+      const friendlyMessage = getFriendlyAuthErrorMessage(err.code, err.message);
+      // setError(friendlyMessage); // setError displays in the form, toast is usually enough for this.
+      toast({
+        title: "Password Reset Failed",
+        description: friendlyMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
   if (authLoading || (!authLoading && user)) {
-    // User is logged in and will be redirected, or initial auth state is loading.
-    // The AuthProvider already shows a full-page skeleton.
-    // For this specific page, if authLoading is true and user is null, show a more specific skeleton.
     if (authLoading && !user) {
       return (
         <div className="flex justify-center items-center min-h-[calc(100vh-200px)] py-12">
           <Card className="w-full max-w-md shadow-2xl">
             <CardHeader className="text-center space-y-4">
-              <Skeleton className="h-12 w-48 mx-auto" /> {/* Logo placeholder */}
-              <Skeleton className="h-8 w-3/4 mx-auto" /> {/* Title: "Get Started" */}
-              <Skeleton className="h-4 w-full mx-auto" /> {/* Description */}
+              <Skeleton className="h-12 w-48 mx-auto" />
+              <Skeleton className="h-8 w-3/4 mx-auto" /> 
+              <Skeleton className="h-4 w-full mx-auto" /> 
             </CardHeader>
             <CardContent className="space-y-6 pt-6">
-              <Skeleton className="h-10 w-full" /> {/* TabsList placeholder */}
-              {/* Skeleton for a form section */}
+              <Skeleton className="h-10 w-full" /> 
               <div className="space-y-2">
-                <Skeleton className="h-5 w-1/4" /> {/* Label */}
-                <Skeleton className="h-10 w-full" /> {/* Input */}
+                <Skeleton className="h-5 w-1/4" /> 
+                <Skeleton className="h-10 w-full" /> 
               </div>
               <div className="space-y-2">
-                <Skeleton className="h-5 w-1/4" /> {/* Label */}
-                <Skeleton className="h-10 w-full" /> {/* Input */}
+                <Skeleton className="h-5 w-1/4" /> 
+                <Skeleton className="h-10 w-full" /> 
               </div>
-              <Skeleton className="h-10 w-full" /> {/* Button */}
+              <Skeleton className="h-10 w-full" /> 
               
-              {/* Separator and social login skeleton */}
               <div className="my-6 relative">
                 <div className="absolute inset-0 flex items-center">
                   <Skeleton className="w-full h-px" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <Skeleton className="h-4 w-24 bg-card px-2" /> {/* "Or continue with" text bg*/}
+                  <Skeleton className="h-4 w-24 bg-card px-2" /> 
                 </div>
               </div>
-              <Skeleton className="h-10 w-full" /> {/* Social Button */}
+              <Skeleton className="h-10 w-full" /> 
             </CardContent>
             <CardFooter>
-              <Skeleton className="h-4 w-3/4 mx-auto" /> {/* Footer text */}
+              <Skeleton className="h-4 w-3/4 mx-auto" /> 
             </CardFooter>
           </Card>
         </div>
       );
     }
-    // If user is already available, AuthProvider's loading state might be passed,
-    // but redirection will happen quickly. A simple text is fine for that brief moment.
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
         <p>Loading...</p>
@@ -327,7 +352,18 @@ export default function LoginPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password-login">Password</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password-login">Password</Label>
+                    <button
+                      type="button"
+                      onClick={handleForgotPassword}
+                      className="text-sm font-medium text-primary hover:underline focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={isLoading || !email.trim()}
+                      tabIndex={0} 
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
                   <div className="relative">
                     <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                     <Input
