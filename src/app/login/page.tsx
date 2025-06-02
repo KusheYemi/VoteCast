@@ -187,7 +187,7 @@ export default function LoginPage() {
               priority
             />
           </div>
-          <CardTitle className="text-3xl font-headline">Welcome to VoteCast</CardTitle>
+          <CardTitle className="text-3xl font-headline">Get Started</CardTitle>
           <CardDescription>Sign in or create an account to participate</CardDescription>
         </CardHeader>
         <CardContent>
@@ -283,3 +283,4 @@ export default function LoginPage() {
 
 
     
+
