@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { ClientPoll, Vote, PollResult, Poll as FirestorePoll } from '@/types'; // Use ClientPoll for props and state, FirestorePoll for Firestore data
@@ -147,8 +148,16 @@ export default function PollDetailClient({ initialPoll }: PollDetailClientProps)
             ) : (
               <RadioGroup value={selectedOptionId} onValueChange={setSelectedOptionId} className="space-y-3 my-4">
                 {poll.options.map(option => (
-                  <Label key={option.id} htmlFor={option.id} className="flex items-center gap-3 p-4 border rounded-lg hover:bg-secondary/50 transition-colors cursor-pointer has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
-                    <RadioGroupItem value={option.id} id={option.id} />
+                  <Label 
+                    key={option.id} 
+                    htmlFor={option.id} 
+                    className="flex items-center gap-3 p-4 border rounded-lg hover:bg-secondary/50 transition-colors cursor-pointer has-[:checked]:bg-accent/10 has-[:checked]:border-accent"
+                  >
+                    <RadioGroupItem 
+                      value={option.id} 
+                      id={option.id} 
+                      className="h-5 w-5 border-muted-foreground border-2 data-[state=checked]:border-accent data-[state=checked]:text-accent"
+                    />
                     <span className="text-base font-medium">{option.text}</span>
                   </Label>
                 ))}
